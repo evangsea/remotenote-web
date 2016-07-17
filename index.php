@@ -142,9 +142,6 @@ $app->post("/newUser", function ($request, $response, $args) use ($dbh) {
     } else {
         $failedPostCond = true;
     }
-    $returnval = [
-        "success" => 0
-    ];
     if(!$failedPostCond) {
         // check to see if username already exists
         try {
@@ -161,13 +158,15 @@ $app->post("/newUser", function ($request, $response, $args) use ($dbh) {
                     $returnval = [
                         "success" => 1
                     ];
+                    $newResponse = $response->withJson($returnval);
+                    return $newResponse;
                 }
             }
         } catch(PDOException $e) {
             // nothing to do here, already taken care of.
         }
     }
-    $newResponse = $response->withJson($returnval);
+    $newResponse = $response->withStatus(500);
     return $newResponse;
 });
 
