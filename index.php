@@ -1,4 +1,12 @@
 <?php
+/**
+ * remotenote-web
+ *
+ * @author Evan Seabrook <evan.g.seabrook@gmail.com>
+ * @copyright 2016 Evan Seabrook
+ * @license Free to distribute, modify, and publish
+ *
+ */
 
 require 'vendor/autoload.php';
 
