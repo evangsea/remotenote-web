@@ -17,7 +17,7 @@ $app = new Slim\App();
 global $dbh;
 
 try {
-    $dbh = new PDO("mysql:host=localhost;dbname=remotenote","root","mypassword");
+    $dbh = new PDO("mysql:host=localhost;dbname=remotenote","remotenote","password");
     if(!is_object($dbh)) {
         throw new Exception("Unable to connect to database");
     }
@@ -45,18 +45,16 @@ $app->get('/', function ($request, $response, $args) {
 $app->post("/newNote", function ($request, $response, $args) use ($dbh) {
     $postData = $request->getParsedBody();
     if(!array_key_exists('title', $postData) || !array_key_exists('content', $postData)) {
-        $newResponse = $response->withStatus(500);
+        $newResponse = $response->withStatus(400);
         $body = $newResponse->getBody();
-        $body->write("Title or content not submitted.");
         return $newResponse;
     }
     $title = $postData['title'];
     $content = $postData['content'];
 
     if(strlen($title) == 0 || strlen($content) == 0) {
-        $newResponse = $response->withStatus(500);
+        $newResponse = $response->withStatus(400);
         $body = $newResponse->getBody();
-        $body->write("Zero length title or content.");
         return $newResponse;
     }
 
@@ -106,7 +104,8 @@ $app->get("/getNotes", function ($request, $response, $args) use ($dbh) {
     $user_id = '';
     try 
     {
-        $stmt = $dbh->prepare("select id from users where username = :username");
+        $stmt = $dbh->prepare("select id from users where username = :username ORDER BY id ASC");
+
         $stmt->bindParam(':username', $username);
         $stmt->execute();
         $user_id = $stmt->fetch()['id'];
@@ -128,6 +127,71 @@ $app->get("/getNotes", function ($request, $response, $args) use ($dbh) {
 
 });
 
+$app->get("/deleteNote", function ($request, $response, $args) use ($dbh) {
+    $data = [];
+    $username = $request->getHeaders()['PHP_AUTH_USER'][0];
+    var_dump($username);
+    $id = $request->getParam('id');
+    $user_id = '';
+    try 
+    {
+        $stmt = $dbh->prepare("select id from users where username = :username");
+
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        $user_id = $stmt->fetch()['id'];	
+	var_dump($user_id);
+        if(empty($user_id)) {
+            // that's unfortunate... user deleted in critical region
+            $newResponse = $response->withStatus(500);
+            return $response;
+        }
+        $stmt = $dbh->prepare("delete from notes where user_id = :userid and id = :id");
+        $stmt->bindParam(':userid', $user_id);
+	$stmt->bindParam(':id', $id);
+        $stmt->execute();
+        $newResponse = $response->withStatus(200);
+        return $newResponse;
+    } catch(PDOException $e) {
+        $newResponse = $response->withStatus(500);
+        return $response;
+    }
+
+});
+
+$app->get("/getNote", function ($request, $response, $args) use ($dbh) {
+    $data = [];
+    $username = $request->getHeaders()['PHP_AUTH_USER'][0];
+    var_dump($username);
+    $id = $request->getParam('id');
+    $user_id = '';
+    try 
+    {
+        $stmt = $dbh->prepare("select id from users where username = :username");
+
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        $user_id = $stmt->fetch()['id'];	
+	var_dump($user_id);
+        if(empty($user_id)) {
+            // that's unfortunate... user deleted in critical region
+            $newResponse = $response->withStatus(500);
+            return $response;
+        }
+        $stmt = $dbh->prepare("select * from notes where user_id = :userid and id = :id");
+        $stmt->bindParam(':userid', $user_id);
+	$stmt->bindParam(':id', $id);
+        $stmt->execute();
+	$data = $stmt->fetch();
+        $newResponse = $response->withStatus(200)->withJson($data);
+        return $newResponse;
+    } catch(PDOException $e) {
+        $newResponse = $response->withStatus(500);
+        return $response;
+    }
+
+});
+
 $app->post("/newUser", function ($request, $response, $args) use ($dbh) {
     $postParams = $request->getParsedBody();
     $failedPostCond = false;
@@ -138,6 +202,7 @@ $app->post("/newUser", function ($request, $response, $args) use ($dbh) {
         $password = $postParams["password"];
         if(strlen(trim($username)) == 0 || strlen(trim($password)) == 0) {
             $failedPostCond = true;
+		echo "true";
         }
     } else {
         $failedPostCond = true;
