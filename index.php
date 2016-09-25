@@ -18,7 +18,8 @@ global $dbh;
 
 try {
     $dbh = new PDO("mysql:host=localhost;dbname=remotenote","remotenote","password");
-    if(!is_object($dbh)) {
+
+    if (!is_object($dbh)) {
         throw new Exception("Unable to connect to database");
     }
 } catch(Exception $e) {
@@ -44,7 +45,7 @@ $app->get('/', function ($request, $response, $args) {
 
 $app->post("/newNote", function ($request, $response, $args) use ($dbh) {
     $postData = $request->getParsedBody();
-    if(!array_key_exists('title', $postData) || !array_key_exists('content', $postData)) {
+    if (!array_key_exists('title', $postData) || !array_key_exists('content', $postData)) {
         $newResponse = $response->withStatus(400);
         $body = $newResponse->getBody();
         return $newResponse;
@@ -52,7 +53,7 @@ $app->post("/newNote", function ($request, $response, $args) use ($dbh) {
     $title = $postData['title'];
     $content = $postData['content'];
 
-    if(strlen($title) == 0 || strlen($content) == 0) {
+    if (strlen($title) == 0 || strlen($content) == 0) {
         $newResponse = $response->withStatus(400);
         $body = $newResponse->getBody();
         return $newResponse;
@@ -65,7 +66,7 @@ $app->post("/newNote", function ($request, $response, $args) use ($dbh) {
         $stmt->execute();
         $user_id = $stmt->fetch(PDO::FETCH_ASSOC)['id'];
 
-        if(empty($user_id)) {
+        if (empty($user_id)) {
             $newResponse = $response->withStatus(500);
             $body = $newResponse->getBody();
             $body->write("User ID not found.");
@@ -77,7 +78,7 @@ $app->post("/newNote", function ($request, $response, $args) use ($dbh) {
         $stmt->bindParam(':id', $user_id);
         $stmt->bindParam(':title', $title);
         $stmt->bindParam(':content', $content);
-        if($stmt->execute()) {
+        if ($stmt->execute()) {
             $data = [
                 "success" => 1
             ];
@@ -109,7 +110,7 @@ $app->get("/getNotes", function ($request, $response, $args) use ($dbh) {
         $stmt->bindParam(':username', $username);
         $stmt->execute();
         $user_id = $stmt->fetch()['id'];
-        if(empty($user_id)) {
+        if (empty($user_id)) {
             // that's unfortunate... user deleted in critical region
             $newResponse = $response->withStatus(500);
             return $response;
@@ -141,7 +142,7 @@ $app->get("/deleteNote", function ($request, $response, $args) use ($dbh) {
         $stmt->execute();
         $user_id = $stmt->fetch()['id'];	
 	var_dump($user_id);
-        if(empty($user_id)) {
+        if (empty($user_id)) {
             // that's unfortunate... user deleted in critical region
             $newResponse = $response->withStatus(500);
             return $response;
@@ -173,7 +174,7 @@ $app->get("/getNote", function ($request, $response, $args) use ($dbh) {
         $stmt->execute();
         $user_id = $stmt->fetch()['id'];	
 	var_dump($user_id);
-        if(empty($user_id)) {
+        if (empty($user_id)) {
             // that's unfortunate... user deleted in critical region
             $newResponse = $response->withStatus(500);
             return $response;
@@ -197,29 +198,29 @@ $app->post("/newUser", function ($request, $response, $args) use ($dbh) {
     $failedPostCond = false;
     $username = $password = '';
 
-    if(array_key_exists('username', $postParams) && array_key_exists('password', $postParams)) {
+    if (array_key_exists('username', $postParams) && array_key_exists('password', $postParams)) {
         $username = $postParams["username"];
         $password = $postParams["password"];
-        if(strlen(trim($username)) == 0 || strlen(trim($password)) == 0) {
+        if (strlen(trim($username)) == 0 || strlen(trim($password)) == 0) {
             $failedPostCond = true;
 		echo "true";
         }
     } else {
         $failedPostCond = true;
     }
-    if(!$failedPostCond) {
+    if (!$failedPostCond) {
         // check to see if username already exists
         try {
             $stmt = $dbh->prepare("select count(*) as numUsers from users where username = :username");
             $stmt->bindParam(':username', $username);
             $stmt->execute();
             $results = $stmt->fetch();
-            if($results['numUsers'] == 0) {
+            if ($results['numUsers'] == 0) {
                 $stmt = $dbh->prepare("insert into users (username, password) values (:username, :password)");
                 $password = password_hash($password, PASSWORD_DEFAULT);
                 $stmt->bindParam(':username', $username);
                 $stmt->bindParam(':password', $password);
-                if($stmt->execute()) {
+                if ($stmt->execute()) {
                     $returnval = [
                         "success" => 1
                     ];
