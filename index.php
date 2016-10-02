@@ -16,12 +16,18 @@ $app = new Slim\App();
 
 global $dbh;
 
+define('DB_SERVER', 'localhost');
+define('DB_NAME', 'remotenote');
+define('DB_USER', 'remotenote');
+define('DB_PASSWORD', 'password');
+
 try {
-    $dbh = new PDO("mysql:host=localhost;dbname=remotenote","remotenote","password");
+    $dbh = new PDO("mysql:host=" . DB_SERVER . ";dbname=" . DB_NAME, DB_USER, DB_PASSWORD);
 
     if (!is_object($dbh)) {
         throw new Exception("Unable to connect to database");
     }
+
 } catch(Exception $e) {
     die("Exception thrown: " . $e->getMessage());
 }
